@@ -16,6 +16,15 @@ const db = mysql.createConnection({
  database: process.env.DB_NAME
 });
 
+db.connect((err) => {
+  if (err) {
+    console.log("DB connection failed, continuing without DB");
+    console.log(err.message);
+  } else {
+    console.log("DB connected");
+  }
+});
+
 app.get("/api/users",(req,res)=>{
  db.query("SELECT * FROM users",(err,result)=>{
   if(err){
