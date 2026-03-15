@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<h1>AWS DevOps Demo</h1>
+
+<button onclick="load()">Load Users</button>
+
+<script>
+
+async function load(){
+
+ const res = await fetch("http://localhost:3000/api/users")
+ const data = await res.json()
+
+ console.log(data)
+
+}
+
+</script>
+
+</html>
