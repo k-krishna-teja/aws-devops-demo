@@ -22,6 +22,25 @@ db.connect((err) => {
     console.log(err.message);
   } else {
     console.log("DB connected");
+
+    db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50)
+      )
+    `, (err) => {
+      if (err) {
+        console.log("Table creation failed:", err.message);
+      } else {
+        console.log("Table ready");
+      }
+    });
+
+    db.query(`
+      INSERT INTO users(name)
+      SELECT 'test'
+      WHERE NOT EXISTS (SELECT * FROM users)
+    `);
   }
 });
 
