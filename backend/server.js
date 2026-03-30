@@ -6,13 +6,13 @@ const cors = require("cors");
 
 const app = express();
 
-// 🔹 Version for CI/CD visibility
+// ✅ Version injected from Docker build (or fallback)
 const VERSION = process.env.APP_VERSION || "v1";
 
 app.use(cors());
 app.use(express.json());
 
-// 🔹 DB connection
+// DB connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -29,21 +29,15 @@ db.connect((err) => {
 
   console.log("✅ DB connected");
 
-  // 🔹 Create table if not exists
+  // Create table
   db.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(50)
     )
-  `, (err) => {
-    if (err) {
-      console.log("❌ Table creation failed:", err.message);
-    } else {
-      console.log("✅ Table ready");
-    }
-  });
+  `);
 
-  // 🔹 Insert version (for CI/CD tracking)
+  // Insert version (every deploy)
   db.query(
     "INSERT INTO users(name) VALUES (?)",
     [VERSION],
@@ -57,12 +51,12 @@ db.connect((err) => {
   );
 });
 
-// 🔹 Root route (health + version)
+// Root route
 app.get("/", (req, res) => {
   res.send(`API running - ${VERSION}`);
 });
 
-// 🔹 Main API
+// API route
 app.get("/api/users", (req, res) => {
   db.query("SELECT * FROM users", (err, result) => {
     if (err) {
@@ -73,7 +67,6 @@ app.get("/api/users", (req, res) => {
   });
 });
 
-// 🔹 Start server
 app.listen(3000, () => {
-  console.log(`🚀 Server running on port 3000 | Version: ${VERSION}`);
+  console.log(`🚀 Server running | Version: ${VERSION}`);
 });
