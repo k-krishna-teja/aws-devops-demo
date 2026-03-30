@@ -1,4 +1,4 @@
-name: Deploy to ECS (Final)
+name: Deploy to ECS (Final Working)
 
 on:
   push:
@@ -10,11 +10,11 @@ jobs:
 
     steps:
 
-    # 1. Checkout code
+    # 1. Checkout
     - name: Checkout
       uses: actions/checkout@v4
 
-    # 2. Configure AWS credentials
+    # 2. AWS credentials
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -26,7 +26,7 @@ jobs:
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 4. Build and Push Docker Image (UNIQUE TAG)
+    # 4. Build + Push image (UNIQUE VERSION)
     - name: Build and Push Docker Image
       run: |
         IMAGE_TAG=${{ github.sha }}
@@ -34,24 +34,23 @@ jobs:
 
         echo "Building image: $IMAGE"
 
-        docker build --no-cache -t $IMAGE ./backend
+        docker build --no-cache \
+          --build-arg APP_VERSION=$IMAGE_TAG \
+          -t $IMAGE ./backend
+
         docker push $IMAGE
 
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-    # 5. Install jq (needed for JSON manipulation)
+    # 5. Install jq
     - name: Install jq
       run: sudo apt-get update && sudo apt-get install -y jq
 
-    # 6. Update ECS Task Definition with new image
+    # 6. Update Task Definition
     - name: Update ECS Task Definition
       run: |
-        echo "Fetching current task definition..."
-
         TASK_DEF=$(aws ecs describe-task-definition \
           --task-definition backend-task)
-
-        echo "Updating image..."
 
         NEW_TASK_DEF=$(echo $TASK_DEF | jq \
           --arg IMAGE "$IMAGE" \
@@ -69,15 +68,20 @@ jobs:
 
         echo "$NEW_TASK_DEF" > new-task-def.json
 
-        echo "Registering new task definition..."
-
         aws ecs register-task-definition \
           --cli-input-json file://new-task-def.json
 
-    # 7. Deploy to ECS Service
-    - name: Deploy to ECS Service
+    # 7. Deploy new revision
+    - name: Deploy to ECS
       run: |
+        REVISION=$(aws ecs describe-task-definition \
+          --task-definition backend-task \
+          --query 'taskDefinition.revision' \
+          --output text)
+
+        echo "Deploying revision: $REVISION"
+
         aws ecs update-service \
           --cluster ${{ secrets.ECS_CLUSTER }} \
           --service ${{ secrets.ECS_SERVICE }} \
-          --force-new-deployment
+          --task-definition backend-task:$REVISION
