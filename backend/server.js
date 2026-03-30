@@ -7,7 +7,7 @@ const cors = require("cors");
 const app = express();
 
 // ✅ Version injected from Docker build (or fallback)
-const VERSION = process.env.APP_VERSION || "v1";
+const VERSION = process.env.APP_VERSION || Date.now().toString();
 
 app.use(cors());
 app.use(express.json());
